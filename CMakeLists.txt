@@ -26,7 +26,7 @@ target_include_directories(pde INTERFACE
     ${PDE_CORE_HEADER}
 )
 
-add_executable(wos_exe src/main.cpp src/wos.cpp)
+add_executable(wos_exe src/main.cpp src/wos.cpp src/window.cpp)
 target_include_directories(wos_exe PRIVATE 
     ${SDL2_INCLUDE_DIRS}
 )

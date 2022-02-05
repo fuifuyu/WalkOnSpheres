@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string>
 
-#include <SDL.h>
+#include "window.h"
 #include "boundary/boxboundary.h"
 #include "wos.h"
 #include "pde/pdes.h"
@@ -13,57 +13,22 @@
 
 using namespace MyTypes;
 
-#define IX(i,j) (i+(N+1)*(j))
-
 double minBound = -3 * M_PI / 2;
 double maxBound = 3 * M_PI / 2;
-const size_t N = 50;
-int h = 15;
 
 SDL_Window *window;
 SDL_Renderer *renderer;
 
-double vorticityAt(arrayd<2> const &x, size_t iteration) {
-	return -2 * cos(x[0]) * cos(x[1]);
-}
-
-double localToDomain(double a) {
-	return a * maxBound * 2/ N + minBound;
-}
-
-void plotWeight(std::function<double(double,double)> func, double *acc, int numSamples) {
-	for (int i = 0; i <= N; i++) {
-		int x = i * h;
-		for (int j = 0; j <= N; j++) {
-			int y = j * h;
-			SDL_Rect fillRect = { x,y,h,h };
-			acc[IX(i, j)] += func(localToDomain(i), localToDomain(j));
-			double color = acc[IX(i, j)] / numSamples * 255;
-			if (color > 255) color = 255;
-			else if (color < -255) color = -255;
-			if (color > 0) {
-				SDL_SetRenderDrawColor(renderer, color, 0, 0, 255);
-				SDL_RenderFillRect(renderer, &fillRect);
-			}
-			else {
-				SDL_SetRenderDrawColor(renderer, 0, 0, -color, 255);
-				SDL_RenderFillRect(renderer, &fillRect);
-			}
-		}
-	}
-}
-
-int screenToLocal(int a) {
-	return a / h;
-}
-double taylorGreenStream(double x, double y) {
-	return -cos(x) * cos(y);
+// Local is the pixel space
+double localToDomain(int a, int numRows) {
+	return a * maxBound * 2.0/ numRows + minBound;
 }
 
 int main() {
-	SDL_CreateWindowAndRenderer((N+1) * h, (N+1) * h, 0, &window, &renderer);
-	double *streamVal = new double[(N + 1) * (N + 1)]();
-	size_t samples = 1;
+	Window window(50,50,15);
+	double *streamAcc = new double[window.numRows * window.numCols]();
+	double *streamVal = new double[window.numRows * window.numCols]();
+	size_t numSamples = 1;
 	std::random_device rd;
 	std::mt19937 generator(rd());
 	arrayd<2> bb {{minBound,maxBound}};
@@ -73,16 +38,18 @@ int main() {
 		&taylorVortex,
 		generator
 	);
-	while(true){
-		SDL_SetWindowTitle(window, std::to_string(samples).c_str());
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
-		SDL_RenderClear(renderer);
-		plotWeight([&taylorVortexWOS](double x, double y) {return taylorVortexWOS.eval(x, y, 0);}, streamVal, samples);
-		samples++;
-		SDL_RenderPresent(renderer);
-		int mouseX, mouseY;
+	while(numSamples++){
+		for(auto it : window){
+			streamAcc[it->i()] += taylorVortexWOS.eval(
+				localToDomain(it->x(),window.numRows),
+				localToDomain(it->y(),window.numRows), 0);
+			streamVal [it->i()] = streamAcc[it->i()]/numSamples;
+		}
+		window.setTitle(std::to_string(numSamples));
+		window.clear();
+		window.plotWeights(streamVal);
 		SDL_PumpEvents();
-		SDL_GetMouseState(&mouseX, &mouseY);
+		SDL_RenderPresent(window.getRenderer());
 	}
 	while (true);
 	return 0;
