@@ -5,6 +5,7 @@
 
 #include <array>
 #include <functional>
+#include <exception>
 #include <mytypes.h>
 #include <boundary.h>
 
@@ -20,6 +21,7 @@ struct PDE{
     PDETypes type;
     PDE(PDETypes type) : type(type){};
     virtual double laplacianOP(arrayd<N> & x, double t) = 0;
+    virtual double truth(arrayd<N> & x, double t){throw std::exception("No analytical solution exist for this PDE.");}
 };
 
 #endif
