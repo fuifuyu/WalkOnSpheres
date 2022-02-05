@@ -1,11 +1,18 @@
-#include "wos.h"
 #include <chrono>
 #include <random>
 #include <iostream>
-#include <SDL.h>
 #include <string>
+
+#include <SDL.h>
+#include "boundary/boxboundary.h"
+#include "wos.h"
+#include "pde/pdes.h"
+#include "mytypes.h"
+
 #undef main
-	
+
+using namespace MyTypes;
+
 #define IX(i,j) (i+(N+1)*(j))
 
 double minBound = -3 * M_PI / 2;
@@ -19,19 +26,7 @@ SDL_Renderer *renderer;
 double vorticityAt(arrayd<2> const &x, size_t iteration) {
 	return -2 * cos(x[0]) * cos(x[1]);
 }
-double condition(arrayd<2> const &x) {
-	return 0;
-}
-double radiusFromBoundary(arrayd<2> const &x) {
-	double x_dist = x[0] - minBound < maxBound - x[0] ? x[0] - minBound : maxBound - x[0];
-	double y_dist = x[1] - minBound < maxBound - x[1] ? x[1] - minBound : maxBound - x[1];
-	return x_dist < y_dist ? x_dist : y_dist;
-}
-bool meetBoundary(arrayd<2> const &x) {
-	if (x[0] < minBound + 0.005 || x[0] > maxBound - 0.005) return true;
-	if (x[1] < minBound + 0.005 || x[1] > maxBound - 0.005) return true;
-	return false;
-}
+
 double localToDomain(double a) {
 	return a * maxBound * 2/ N + minBound;
 }
@@ -71,11 +66,11 @@ int main() {
 	size_t samples = 1;
 	std::random_device rd;
 	std::mt19937 generator(rd());
+	arrayd<2> bb {{minBound,maxBound}};
+	WosBoxBoundary2D taylorVortex([](arrayd<2> const&x){return 0;},bb,0.005);
 	WOS2d taylorVortexWOS(
-		&vorticityAt,
-		&condition,
-		&meetBoundary,
-		&radiusFromBoundary,
+		&TaylorVortexPDE2(),
+		&taylorVortex,
 		generator
 	);
 	while(true){

@@ -4,50 +4,42 @@
 #ifndef WOS_H
 #define WOS_H
 
-#include <functional>
+#include "pde.h"
+#include "mytypes.h"
 #include <array>
 #include <random>
 #include <math.h>
-#include <assert.h>
 
 using namespace std;
-template<size_t N>
-using arrayd = array<double, N>;
+using namespace MyTypes;
 
 template<size_t N>
 class WOS {
 public:
-	WOS(function<double(arrayd<N> &, size_t iteration)> f,
-		function<double(arrayd<N> &)> dirichletCondition,
-		function<bool(arrayd<N> &)> meetBoundary,
-		function<double(arrayd<N> &)> radiusFromBoundary,
-		mt19937 generator) :
-		f(f), dirichletCondition(dirichletCondition), meetBoundary(meetBoundary), radiusFromBoundary(radiusFromBoundary), generator(generator)
+	WOS(PDE<N> *pde, WosBoundary<N> *boundary, mt19937 generator)
+	: pde(pde), boundary(boundary), generator(generator)
 	{};
-	double eval(arrayd<N> &x, size_t iteration) const
+	double eval(arrayd<N> &x, double iteration) const
 	{
-		if (meetBoundary(x)) return dirichletCondition(x);
-		assert(iteration >= 0);
+		if (boundary->meet(x)) return boundary->cond(x);
 		double res = 0;
-		double R = radiusFromBoundary(x);
+		double R = boundary->minDistFromBoundary(x);
 
 		arrayd<N> randOnSphere = randPointOnSphere(x, R);
 		arrayd<N> randInSphere = randPointInSphere(x, R);
 
 		double u_1 = eval(randOnSphere, iteration);
 		double harmonic = 0;
-		if (f) {
-			double f_1 = f(randInSphere, iteration);
+		if (pde->type == PDETypes::Poisson) {
+			double f_1 = pde->laplacianOP(randInSphere, iteration);
 			harmonic = f_1 * G(x, randInSphere, R) * calcSphereArea(R);
 		}
 		return u_1 + harmonic;
 	}
 
 protected:
-	function<double(arrayd<N> &, size_t iteration)> f;
-	function<double(arrayd<N> &)> radiusFromBoundary;
-	function<double(arrayd<N> &)> dirichletCondition;
-	function<bool(arrayd<N> &)> meetBoundary;
+	PDE<N> *pde;
+	WosBoundary<N> *boundary;
 	mutable std::mt19937 generator;
 
 	virtual double calcSphereArea(double radius) const = 0;
