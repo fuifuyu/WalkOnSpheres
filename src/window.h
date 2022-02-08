@@ -71,12 +71,12 @@ struct Window{
 
     const int numPixel, pixelWidth;
     const int numRows, numCols;
+    size_t IX(size_t x, size_t y) { return x+numRows*y; }
     
     private:
     SDL_Window *window;
     SDL_Renderer *renderer;
     
-    size_t IX(size_t x, size_t y) { return x+numRows*y; }
 };
 
 #endif

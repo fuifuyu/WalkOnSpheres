@@ -19,7 +19,7 @@ public:
 	WOS(PDE<N> *pde, WosBoundary<N> *boundary, mt19937 generator)
 	: pde(pde), boundary(boundary), generator(generator)
 	{};
-	double eval(arrayd<N> &x, double iteration) const
+	double eval(arrayd<N> &x, double t) const
 	{
 		if (boundary->meet(x)) return boundary->cond(x);
 		double res = 0;
@@ -28,15 +28,17 @@ public:
 		arrayd<N> randOnSphere = randPointOnSphere(x, R);
 		arrayd<N> randInSphere = randPointInSphere(x, R);
 
-		double u_1 = eval(randOnSphere, iteration);
+		double u_1 = eval(randOnSphere, t);
 		double harmonic = 0;
 		if (pde->type == PDETypes::Poisson) {
-			double f_1 = pde->laplacianOP(randInSphere, iteration);
+			double f_1 = pde->laplacianOP(randInSphere, t);
 			harmonic = f_1 * G(x, randInSphere, R) * calcSphereArea(R);
 		}
 		return u_1 + harmonic;
 	}
-
+	double truth(arrayd<N> &x, double t) const{
+		return pde->truth(x,t);
+	}
 protected:
 	PDE<N> *pde;
 	WosBoundary<N> *boundary;
@@ -52,6 +54,7 @@ protected:
 class WOS2d : public WOS<2> {
 public:
 	using WOS::WOS;
+	using WOS::eval;
 
 	double eval(double x, double y, double time) const;
 protected:

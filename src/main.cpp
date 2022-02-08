@@ -21,7 +21,37 @@ SDL_Renderer *renderer;
 
 // Local is the pixel space
 double localToDomain(int a, int numRows) {
-	return a * maxBound * 2.0/ numRows + minBound;
+	return a * (maxBound - minBound)/ numRows + minBound;
+}	
+
+int mouseX, mouseY;
+double errorMax;
+bool interactiveError = false;
+bool quit = false;
+void debug(Window window, WOS2d wos, double *streamVal){
+SDL_Event e;
+	const Uint8 *keystates = SDL_GetKeyboardState(NULL);
+	SDL_PollEvent(&e);
+	if (e.type == SDL_QUIT) {
+		quit = true;
+	}
+	if (keystates[SDL_SCANCODE_E]) {
+		interactiveError = true;
+	}
+	if (keystates[SDL_SCANCODE_F]) {
+		interactiveError = false;
+	}
+	if (interactiveError) {
+		SDL_GetMouseState(&mouseX, &mouseY);
+		int localX = window.screenToLocal(mouseX);
+		int localY = window.screenToLocal(mouseY);
+		arrayd<2> x = {{localToDomain(localX,window.numCols), localToDomain(localY,window.numRows)}};
+		std::cout << wos.truth(x,0) << " - " << streamVal[window.IX(localX,localY)] << " = ";
+		std::cout << wos.truth(x,0)- streamVal[window.IX(localX,localY)] << '\n';
+	}
+	else {
+		std::cout << "Max error: [" << errorMax << "]\n";
+	}
 }
 
 int main() {
@@ -32,25 +62,26 @@ int main() {
 	std::random_device rd;
 	std::mt19937 generator(rd());
 	arrayd<2> bb {{minBound,maxBound}};
-	WosBoxBoundary2D taylorVortex([](arrayd<2> const&x){return 0;},bb,0.005);
+	WosBoxBoundary2D taylorVortexBoundary([](arrayd<2> const&x){return 0;},bb,0.005);
 	WOS2d taylorVortexWOS(
 		&TaylorVortexPDE2(),
-		&taylorVortex,
+		&taylorVortexBoundary,
 		generator
 	);
-	while(numSamples++){
+	while(!quit && numSamples++){
+		errorMax = 0;
 		for(auto it : window){
-			streamAcc[it->i()] += taylorVortexWOS.eval(
-				localToDomain(it->x(),window.numRows),
-				localToDomain(it->y(),window.numRows), 0);
+			arrayd<2> x = {{localToDomain(it->x(),window.numRows),localToDomain(it->y(),window.numRows)}};
+			streamAcc[it->i()] += taylorVortexWOS.eval(x, 0);
 			streamVal [it->i()] = streamAcc[it->i()]/numSamples;
+			double error = abs(taylorVortexWOS.truth(x,0)-streamVal[it->i()]);
+			if(error > errorMax) errorMax = error;
 		}
+		debug(window, taylorVortexWOS, streamVal);
 		window.setTitle(std::to_string(numSamples));
 		window.clear();
 		window.plotWeights(streamVal);
-		SDL_PumpEvents();
 		SDL_RenderPresent(window.getRenderer());
 	}
-	while (true);
 	return 0;
 }
