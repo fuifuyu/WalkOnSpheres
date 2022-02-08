@@ -55,7 +55,7 @@ struct Window{
         return Iterator(0,0,0, numCols);
     }
     Iterator end(){
-        return Iterator(numCols-1,numRows-1, (numRows-1)*(numCols-1),numCols);
+        return Iterator(numCols,numRows, numRows*numCols-1,numCols);
     }
 
     void setTitle(std::string title) {SDL_SetWindowTitle(window,title.c_str());}
