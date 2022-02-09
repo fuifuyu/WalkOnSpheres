@@ -36,8 +36,23 @@ public:
 		}
 		return u_1 + harmonic;
 	}
+	arrayd<N> evalGrad(arrayd<N> &x, double t) const{
+		if(boundary->meet(x)) return pde->gradTruth(x,t);
+		double R = boundary->minDistFromBoundary(x);
+		arrayd<N> randOnSphere = randPointOnSphere(x,R);
+		arrayd<N> sol = times(subtract(randOnSphere,x),N*eval(randOnSphere,t)/(R*R));
+		if(pde->type==PDETypes::Poisson){
+			arrayd<N> randInSphere = randPointInSphere(x,R);
+			arrayd<N> source = times(gradG(x,randInSphere,R),M_PI*R*R*pde->laplacianOP(randInSphere,t));
+			return add(sol, source);
+		}
+		return sol;
+	}
 	double truth(arrayd<N> &x, double t) const{
 		return pde->truth(x,t);
+	}
+	arrayd<N> gradTruth(arrayd<N> &x, double t) const{
+		return pde->gradTruth(x,t);
 	}
 protected:
 	PDE<N> *pde;
@@ -48,7 +63,7 @@ protected:
 	virtual arrayd<N> randPointOnSphere(arrayd<N> &x, double radius) const = 0;
 	virtual arrayd<N> randPointInSphere(arrayd<N> &x, double radius) const = 0;
 	virtual double G(arrayd<N> &x, arrayd<N> &y, double sphereR) const = 0;
-
+	virtual arrayd<N> gradG(arrayd<N> &x, arrayd<N> &y, double sphereR) const = 0;
 };
 
 class WOS2d : public WOS<2> {
@@ -62,6 +77,7 @@ protected:
 	arrayd<2> randPointOnSphere(arrayd<2> &x, double radius) const override;
 	arrayd<2> randPointInSphere(arrayd<2> &x, double radius) const override;
 	double G(arrayd<2> &x, arrayd<2> &y, double sphereR) const override;
+	arrayd<2> gradG(arrayd<2> &x, arrayd<2> &y, double sphereR) const override;
 };
 
 class WOS3d : public WOS<3> {

@@ -22,6 +22,11 @@ double WOS2d::G(arrayd<2> &x, arrayd<2> &y, double sphereR) const {
 	return GCONST_2D * log(sphereR / r);
 }
 
+arrayd<2> WOS2d::gradG(arrayd<2> &x, arrayd<2> &y, double sphereR) const {
+	double r2 = (y[0] - x[0]) * (y[0] - x[0]) + (y[1] - x[1]) * (y[1] - x[1]);
+	return times(subtract(y,x),GCONST_2D*(1/r2-1/(sphereR*sphereR)));
+}
+
 arrayd<2> WOS2d::randPointOnSphere(arrayd<2> &x, double radius) const {
 	double theta = uniformDis(generator) * 2 * M_PI;
 	return arrayd<2>{ {x[0] + radius * cos(theta), x[1] + radius * sin(theta)}};

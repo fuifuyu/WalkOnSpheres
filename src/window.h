@@ -6,6 +6,7 @@
 #include <string>
 #include <SDL.h>
 #include <tuple>
+#include <mytypes.h>
 #undef main
 
 struct Window{
@@ -64,6 +65,7 @@ struct Window{
 		SDL_RenderClear(renderer);
     }
     void plotWeights(double *weights);
+    void plotVector2(MyTypes::arrayd<2> *vectors);
     int screenToLocal(int screen){return screen/pixelWidth;}
     
     SDL_Window *getWindow(){return window;}
@@ -72,10 +74,12 @@ struct Window{
     const int numPixel, pixelWidth;
     const int numRows, numCols;
     size_t IX(size_t x, size_t y) { return x+numRows*y; }
-    
+    bool saveScreenshotBMP(std::string filepath);
     private:
     SDL_Window *window;
     SDL_Renderer *renderer;
+
+    
     
 };
 
